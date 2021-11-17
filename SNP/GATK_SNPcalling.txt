@@ -1,0 +1,149 @@
+# pathの設定
+$ PROJECT_PATH=/Users/XXX(username)/RNAseq/GATK
+
+$ cd $PROJECT_PATH
+
+
+# フォルダの作成
+$ mkdir genome
+$ mkdir fastq
+$ mkdir cleaned_fastq
+$ mkdir bam
+$ mkdir bqsr
+$ mkdir vcf
+
+$ cd ${PROJECT_PATH}/fastq
+
+
+# fastpによるadapter trimmingとQC
+# version 0.20.1
+$ for fpath in `ls *_1.fastq`
+> do
+> fname=${fpath%_1.fastq}
+> fastp --detect_adapter_for_pe -i ${fname}_1.fastq -I ${fname}_2.fastq -o ${fname}_cleaned_1.fastq -O ${fname}_cleaned_2.fastq
+> done
+
+$ mv *_cleaned_*.fastq ${PROJECT_PATH}/cleaned_fastq/
+
+$ cd ${PROJECT_PATH}/genome
+
+
+# indexの作成
+$ bwa index -p RIB40_BWAindex ${PROJECT_PATH}/genome/A_oryzae_RIB40_current_chromosomes.fasta
+
+$ cd ${PROJECT_PATH}/cleaned_fastq
+
+
+# bwa memによるmapping
+# version 0.7.17-r1188
+$ for fpath in `ls *_cleaned_1.fastq`
+> do
+> fname=${fpath%_cleaned_1.fastq}
+> bamRG="@RG\tID:"${fname}"\tPL:ILLUMINA\tSM:"${fname}
+> bwa mem -R ${bamRG} ${PROJECT_PATH}/genome/RIB40_BWAindex ${fname}_cleaned_1.fastq ${fname}_cleaned_2.fastq > ${fname}.sam
+> done
+
+$ mv *.sam ${PROJECT_PATH}/bam/
+$ cd ${PROJECT_PATH}/bam
+
+
+# bamファイルの作成
+$ for fpath in `ls *.sam`
+> do
+> samtools sort -@ 5 ${fpath} > ${fpath%.sam}.bam
+> done
+
+
+# referenceのindexの作成
+# gatk version 4.2.0.0
+$ REF=${PROJECT_PATH}/genome/A_oryzae_RIB40_current_chromosomes.fasta
+$ samtools faidx ${REF}
+$ gatk CreateSequenceDictionary -R ${REF} -O ${REF%.fasta}.dict
+
+
+# 前処理
+$ for fpath in `ls *.bam`
+> do
+> gatk MarkDuplicates -I ${fpath} -O ${fpath%.bam}_markup.bam -M ${fpath%.bam}_markup_metrics.txt
+> samtools index ${fpath%.bam}_markup.bam
+> done
+
+
+# BQSR
+$ for fpath in `ls *_markup.bam`
+> do
+> fname=${fpath%_markup.bam}
+> gatk HaplotypeCaller -R ${REF} --emit-ref-confidence GVCF -I ${fname}_markup.bam -O ${fname}.g.vcf
+> done
+
+$ mv *.g.vcf ../bqsr/
+$ mv *.g.vcf.idx ../bqsr/
+$ cd ${PROJECT_PATH}/bqsr
+
+$ gvcf_files=""
+$ for gvcf_file in `ls *.g.vcf`
+> do
+> gvcf_files=${gvcf_files}"-V ${gvcf_file} "
+> done
+
+$ echo -e "Chr1_A_oryzae_RIB40\nChr2_A_oryzae_RIB40\nChr3_A_oryzae_RIB40\nChr4_A_oryzae_RIB40\nChr5_A_oryzae_RIB40\nChr6_A_oryzae_RIB40\nChr7_A_oryzae_RIB40\nChr8_A_oryzae_RIB40\ncontig_11.1_A_oryzae_RIB40\ncontig_28.1_A_oryzae_RIB40\ncontig_7.1_A_oryzae_RIB40\nmito_A_oryzae_RIB40" > intervals.list
+
+$ gatk GenomicsDBImport -R ${REF} ${gvcf_files} -L intervals.list --genomicsdb-workspace-path gvcfs_db
+
+$ gatk GenotypeGVCFs -R ${REF} -V gendb://gvcfs_db -O merged.vcf
+
+$ gatk SelectVariants -R ${REF} -V merged.vcf --select-type-to-include SNP -O merged_snps.vcf
+
+# Chacon-Vargas et al. 2021のパラメータに従った。
+$ gatk VariantFiltration -R ${REF} -V merged_snps.vcf -O merged_snps_filtered.vcf -filter "QD < 21.0" --filter-name "QD21" -filter "SOR > 1.0" --filter-name "SOR1" -filter "FS > 0.5" --filter-name "FS0.5" -filter "MQ < 60.0" --filter-name "MQ60" -filter "MQRankSum < -0.2" --filter-name "MQRankSum-0.2" -filter "ReadPosRankSum < -4.0" --filter-name "ReadPosRankSum-4"
+
+$ gatk SelectVariants -R ${REF} -V merged.vcf --select-type-to-include INDEL -O merged_indels.vcf
+$ gatk VariantFiltration -R ${REF} -V merged_indels.vcf -O merged_indels_filtered.vcf -filter "QD < 2.0" --filter-name "QD2" -filter "QUAL < 30.0" --filter-name "QUAL30" -filter "FS > 200.0" --filter-name "FS200" -filter "SOR > 10.0" -filter-name "SOR10" -filter "ReadPosRankSum < -20.0" --filter-name "ReadPosRankSum-20"
+
+$ cd ${PROJECT_PATH}/bam
+
+$ for fpath in `ls *_markup.bam`
+> do
+> fname=${fpath%_markup.bam}
+> gatk BaseRecalibrator -R ${REF} -I ${fname}_markup.bam --known-sites ${PROJECT_PATH}/bqsr/merged_snps_filtered.vcf --known-sites ${PROJECT_PATH}/bqsr/merged_indels_filtered.vcf -O ${fname}_recal_data.table
+> gatk ApplyBQSR -R ${REF} -I ${fname}_markdup.bam -bqsr ${fname}_recal_data.table -O ${fname}_bqsr.bam
+> done
+
+
+# バリアントコール
+$ for fpath in `ls *_bqsr.bam`
+> do
+> fname=${fpath%_bqsr.bam}
+> gatk HaplotypeCaller -R ${REF} --emit-ref-confidence GVCF -I ${fname}_bqsr.bam -O ${fname}.g.vcf
+> done
+
+$ mv *.g.vcf ../vcf/
+$ mv *.g.vcf.idx ../vcf/
+
+$ cd ${PROJECT_PATH}/vcf
+$ gvcf_files=""
+$ for gvcf_file in `ls *.g.vcf`
+> do
+> gvcf_files=${gvcf_files}"-V ${gvcf_file} "
+> done
+
+$ echo -e "Chr1_A_oryzae_RIB40\nChr2_A_oryzae_RIB40\nChr3_A_oryzae_RIB40\nChr4_A_oryzae_RIB40\nChr5_A_oryzae_RIB40\nChr6_A_oryzae_RIB40\nChr7_A_oryzae_RIB40\nChr8_A_oryzae_RIB40\ncontig_11.1_A_oryzae_RIB40\ncontig_28.1_A_oryzae_RIB40\ncontig_7.1_A_oryzae_RIB40\nmito_A_oryzae_RIB40" > intervals.list
+
+$ gatk GenomicsDBImport -R ${REF} ${gvcf_files} -L intervals.list --genomicsdb-workspace-path gvcfs_db
+
+$ gatk GenotypeGVCFs -R ${REF} -V gendb://gvcfs_db -O merged.vcf
+
+$ gatk SelectVariants -R ${REF} -V merged.vcf --select-type-to-include SNP -O merged_snps.vcf
+
+$ gatk VariantFiltration -R ${REF} -V merged_snps.vcf -O merged_snps_filtered.vcf -filter "QD < 2.0" --filter-name "QD2" -filter "QUAL < 30.0" --filter-name "QUAL30" -filter "FS > 200.0" --filter-name "FS200" -filter "SOR > 10.0" -filter-name "SOR10" -filter "ReadPosRankSum < -20.0" --filter-name "ReadPosRankSum-20"
+
+$ gatk SelectVariants -R ${REF} -V merged.vcf --select-type-to-include INDEL -O merged_indels.vcf
+
+$ gatk VariantFiltration -R ${REF} -V merged_indels.vcf -O merged_indels_filtered.vcf -filter "QD < 2.0" --filter-name "QD2" -filter "QUAL < 30.0" --filter-name "QUAL30" -filter "FS > 200.0" --filter-name "FS200" -filter "SOR > 10.0" -filter-name "SOR10" -filter "ReadPosRankSum < -20.0" --filter-name "ReadPosRankSum-20"
+
+
+
+
+
+
+

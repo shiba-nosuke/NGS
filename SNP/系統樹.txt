@@ -1,0 +1,15 @@
+# GATKを用いたSNP callingの続き
+
+$ gatk SelectVariants -R ${REF} -V ${PROJECT_PATH}/vcf/merged_snps_filtered.vcf -O merged_snp_filtered_selected.vcf --restrict-alleles-to BIALLELIC
+
+
+$ python vcf2phylip.py --input merged_snp_filtered_selected.vcf
+# merged_snp_filtered_selected.min4.phyが出力される
+
+$ python3 ascbias.py -p ${PROJECT_PATH}/vcf/merged_snp_filtered_selected.min4.phy --outfile merged_snps_filtered_out.phy
+
+$ cat /Users/brewingmicrobiology/RNAseq/GATK/vcf/merged_snps_filtered_out.phy | sed -e "s/*/-/g" > merged_snps_filtered_out2.phy
+
+
+# 出力されたmerged_snps_filtered_out2.phyを用いてRAxMLで系統樹を描画する。
+# https://raxml-ng.vital-it.ch/#/
