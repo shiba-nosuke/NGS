@@ -1,0 +1,140 @@
+# 最初にminicondaをinstallする。
+# 下記のサイトから入手可能
+# https://docs.conda.io/en/latest/miniconda.html
+
+# minicondaのインストールとversionの確認
+$ conda -V 
+$ python --version
+
+# チャンネルの設定(やらなくてもいい気がする。分からない)
+$ conda config --add channnels conda-forge
+$ conda config --add channnels defaults
+$ conda config --add channnels r
+$ conda config --add channnels bioconda
+
+
+# orthofinderのinstall (依存環境もinstallしてくれるはず)
+$ conda install -c bioconda orthofinder
+
+# orthofinderというフォルダを用意して、そこをワーキングディレクトリとする。
+$ cd /orthofinder
+
+# example dataのダウンロード
+$ git clone https://github.com/davidemms/OrthoFinder.git
+
+# 以下の文が出てくる。
+Cloning into 'OrthoFinder'...
+remote: Enumerating objects: 8843, done.
+remote: Counting objects: 100% (193/193), done.
+remote: Compressing objects: 100% (142/142), done.
+remote: Total 8843 (delta 118), reused 113 (delta 51), pack-reused 8650
+Receiving objects: 100% (8843/8843), 44.25 MiB | 11.04 MiB/s, done.
+Resolving deltas: 100% (4443/4443), done.
+
+# example dataを実際に動かす。
+$ orthofinder -f Tests/Input/ExampleDataset -t 8
+
+# 以下の文が出てくれば、エラーなく、動いている。
+OrthoFinder version 2.5.4 Copyright (C) 2014 David Emms
+
+2022-04-01 13:05:56 : Starting OrthoFinder 2.5.4
+8 thread(s) for highly parallel tasks (BLAST searches etc.)
+1 thread(s) for OrthoFinder algorithm
+
+Checking required programs are installed
+----------------------------------------
+Test can run "mcl -h" - ok
+Test can run "fastme -i /Users/username/orthofinder/OrthoFinder/Tests/Input/ExampleDataset/OrthoFinder/Results_Apr01/WorkingDirectory/SimpleTest.phy -o /Users/username/orthofinder/OrthoFinder/Tests/Input/ExampleDataset/OrthoFinder/Results_Apr01/WorkingDirectory/SimpleTest.tre" - ok
+
+Dividing up work for BLAST for parallel processing
+--------------------------------------------------
+2022-04-01 13:05:56 : Creating diamond database 1 of 4
+2022-04-01 13:05:56 : Creating diamond database 2 of 4
+2022-04-01 13:05:56 : Creating diamond database 3 of 4
+2022-04-01 13:05:56 : Creating diamond database 4 of 4
+
+Running diamond all-versus-all
+------------------------------
+Using 8 thread(s)
+2022-04-01 13:05:56 : This may take some time....
+2022-04-01 13:05:57 : Done 0 of 16
+2022-04-01 13:06:04 : Done all-versus-all sequence search
+
+Running OrthoFinder algorithm
+-----------------------------
+2022-04-01 13:06:04 : Initial processing of each species
+2022-04-01 13:06:04 : Initial processing of species 0 complete
+2022-04-01 13:06:05 : Initial processing of species 1 complete
+2022-04-01 13:06:05 : Initial processing of species 2 complete
+2022-04-01 13:06:05 : Initial processing of species 3 complete
+2022-04-01 13:06:07 : Connected putative homologues
+2022-04-01 13:06:08 : Written final scores for species 0 to graph file
+2022-04-01 13:06:08 : Written final scores for species 1 to graph file
+2022-04-01 13:06:08 : Written final scores for species 2 to graph file
+2022-04-01 13:06:08 : Written final scores for species 3 to graph file
+2022-04-01 13:06:08 : Ran MCL
+
+Writing orthogroups to file
+---------------------------
+OrthoFinder assigned 2202 genes (80.6% of total) to 604 orthogroups. Fifty percent of all genes were in orthogroups with 4 or more genes (G50 was 4) and were contained in the largest 281 orthogroups (O50 was 281). There were 269 orthogroups with all species present and 246 of these consisted entirely of single-copy genes.
+
+2022-04-01 13:06:08 : Done orthogroups
+
+Analysing Orthogroups
+=====================
+
+Calculating gene distances
+--------------------------
+2022-04-01 13:06:11 : Done
+
+Inferring gene and species trees
+--------------------------------
+2022-04-01 13:06:11 : Done 0 of 325
+2022-04-01 13:06:12 : Done 100 of 325
+2022-04-01 13:06:12 : Done 200 of 325
+2022-04-01 13:06:12 : Done 300 of 325
+
+269 trees had all species present and will be used by STAG to infer the species tree
+
+Best outgroup(s) for species tree
+---------------------------------
+2022-04-01 13:06:15 : Starting STRIDE
+2022-04-01 13:06:18 : Done STRIDE
+Observed 2 well-supported, non-terminal duplications. 2 support the best roots and 0 contradict them.
+Best outgroups for species tree:
+  Mycoplasma_hyopneumoniae_AE017243
+  Mycoplasma_agalactiae_5632_FP671138
+  Mycoplasma_gallisepticum_uid409_AE015450, Mycoplasma_genitalium_uid97_L43967
+
+WARNING: Multiple potential species tree roots were identified, only one will be analyed.
+
+Reconciling gene trees and species tree
+---------------------------------------
+Outgroup: Mycoplasma_hyopneumoniae_AE017243
+2022-04-01 13:06:18 : Starting Recon and orthologues
+2022-04-01 13:06:18 : Starting OF Orthologues
+2022-04-01 13:06:18 : Done 0 of 325
+2022-04-01 13:06:18 : Done 100 of 325
+2022-04-01 13:06:18 : Done 200 of 325
+2022-04-01 13:06:18 : Done 300 of 325
+2022-04-01 13:06:18 : Done OF Orthologues
+
+Writing results files
+=====================
+2022-04-01 13:06:18 : Done orthologues
+
+Results:
+    /Users/username/orthofinder/OrthoFinder/Tests/Input/ExampleDataset/OrthoFinder/Results_Apr01/
+
+CITATION:
+ When publishing work that uses OrthoFinder please cite:
+ Emms D.M. & Kelly S. (2019), Genome Biology 20:238
+
+ If you use the species tree in your work then please also cite:
+ Emms D.M. & Kelly S. (2017), MBE 34(12): 3267-3278
+ Emms D.M. & Kelly S. (2018), bioRxiv https://doi.org/10.1101/267914
+
+
+# 実際のデータを動かすときは、以下のようにする。
+# -f オプションで用いたいデータを格納したフォルダを指定する。
+$ orthofinder -f data
