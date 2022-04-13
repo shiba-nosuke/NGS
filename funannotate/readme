@@ -1,0 +1,5 @@
+真菌のゲノムannotation pipelineであるfunannotateの導入と、その動作確認を行った。
+https://funannotate.readthedocs.io/en/latest/tutorials.html#genome-assembly-only を参考に実施した。
+
+dockerを用いてmacminiに導入したが、最新版を使用するとpredictionが行えなかったため、v1.8.9を以下のサイトより用いた。
+https://hub.docker.com/r/nextgenusfs/funannotate/tags
