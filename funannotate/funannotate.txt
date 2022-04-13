@@ -1,0 +1,156 @@
+# funannotateの導入(latestだと動かなかった[220323現在]ので、v1.8.9を使用)
+$ docker pull nextgenusfs/funannotate:v1.8.9
+v1.8.9: Pulling from nextgenusfs/funannotate
+627b765e08d1: Pull complete 
+7ee0b5ffbd21: Pull complete 
+8ae564586c0f: Pull complete 
+06c75742e970: Pull complete 
+Digest: sha256:b92f9f2095be92742e9843ff985ca3f629c9ee76a06f0c892de8f3df04e27722
+Status: Downloaded newer image for nextgenusfs/funannotate:v1.8.9
+docker.io/nextgenusfs/funannotate:v1.8.9
+
+$ wget -O funannotate-docker https://raw.githubusercontent.com/nextgenusfs/funannotate/master/funannotate-docker
+
+# 権限の変更
+$ chmod +x /Users/username/Funannotate/Funannotate/funannotate-docker 
+
+
+# check (Bio::Perlはinstallされていないが、とりあえず動く)
+$ funannotate-docker check
+-------------------------------------------------------
+Checking dependencies for 1.8.9
+-------------------------------------------------------
+To print all dependencies and versions: funannotate check --show-versions
+
+You are running Python v 3.8.10. Now checking python packages...
+All 11 python packages installed
+
+
+You are running Perl v b'5.026002'. Now checking perl modules...
+   ERROR: Bio::Perl not installed, install with cpanm Bio::Perl 
+
+
+Checking Environmental Variables...
+	ERROR: GENEMARK_PATH not set. export GENEMARK_PATH=/path/to/dir
+-------------------------------------------------------
+Checking external dependencies...
+Traceback (most recent call last):
+  File "/venv/bin/ete3", line 6, in <module>
+    from ete3.tools.ete import main
+  File "/venv/lib/python3.8/site-packages/ete3/tools/ete.py", line 55, in <module>
+    from . import (ete_split, ete_expand, ete_annotate, ete_ncbiquery, ete_view,
+  File "/venv/lib/python3.8/site-packages/ete3/tools/ete_view.py", line 48, in <module>
+    from .. import (Tree, PhyloTree, TextFace, RectFace, faces, TreeStyle, CircleFace, AttrFace,
+ImportError: cannot import name 'TextFace' from 'ete3' (/venv/lib/python3.8/site-packages/ete3/__init__.py)
+	ERROR: emapper.py not installed
+	ERROR: ete3 not installed
+	ERROR: gmes_petap.pl not installed
+	ERROR: signalp not installed
+
+
+# testを行う(predict)。(latestはここで、GlimmerHMM gene predictionが動かなかった。
+$ funannotate-docker test -t predict --cpus 4
+#########################################################
+Running `funannotate predict` unit testing
+Downloading: https://osf.io/te2pf/download?version=1 Bytes: 1489808
+CMD: funannotate predict -i test.softmasked.fa --protein_evidence protein.evidence.fasta -o annotate --augustus_species saccharomyces --cpus 4 --species Awesome testicus
+#########################################################
+-------------------------------------------------------
+[Mar 23 07:57 PM]: OS: Debian GNU/Linux 10, 4 cores, ~ 26 GB RAM. Python: 3.8.10
+[Mar 23 07:57 PM]: Running funannotate v1.8.9
+[Mar 23 07:57 PM]: GeneMark not found and $GENEMARK_PATH environmental variable missing. Will skip GeneMark ab-initio prediction.
+[Mar 23 07:57 PM]: Skipping CodingQuarry as no --rna_bam passed
+[Mar 23 07:57 PM]: Parsed training data, run ab-initio gene predictors as follows:
+  Program      Training-Method
+  augustus     pretrained     
+  glimmerhmm   busco          
+  snap         busco          
+[Mar 23 07:57 PM]: Loading genome assembly and parsing soft-masked repetitive sequences
+[Mar 23 07:57 PM]: Genome loaded: 6 scaffolds; 3,776,588 bp; 19.75% repeats masked
+[Mar 23 07:57 PM]: Mapping 1,065 proteins to genome using diamond and exonerate
+[Mar 23 07:58 PM]: Found 1,784 preliminary alignments --> aligning with exonerate
+[Mar 23 07:58 PM]: Exonerate finished: found 1,437 alignments
+[Mar 23 07:58 PM]: Running BUSCO to find conserved gene models for training ab-initio predictors
+[Mar 23 08:09 PM]: 373 valid BUSCO predictions found, validating protein sequences
+[Mar 23 08:09 PM]: 370 BUSCO predictions validated
+[Mar 23 08:09 PM]: Running Augustus gene prediction using saccharomyces parameters
+[Mar 23 08:11 PM]: 1,492 predictions from Augustus
+[Mar 23 08:11 PM]: Pulling out high quality Augustus predictions
+[Mar 23 08:11 PM]: Found 372 high quality predictions from Augustus (>90% exon evidence)
+[Mar 23 08:11 PM]: Running SNAP gene prediction, using training data: annotate/predict_misc/busco.final.gff3
+[Mar 23 08:13 PM]: 1,490 predictions from SNAP
+[Mar 23 08:13 PM]: Running GlimmerHMM gene prediction, using training data: annotate/predict_misc/busco.final.gff3
+[Mar 23 08:15 PM]: 1,770 predictions from GlimmerHMM
+[Mar 23 08:15 PM]: Summary of gene models passed to EVM (weights):
+  Source         Weight   Count
+  Augustus       1        1331 
+  Augustus HiQ   2        373  
+  GlimmerHMM     1        1770 
+  snap           1        1490 
+  Total          -        4964 
+[Mar 23 08:15 PM]: EVM: partitioning input to ~ 35 genes per partition using min 1500 bp interval
+[Mar 23 08:18 PM]: Converting to GFF3 and collecting all EVM results
+[Mar 23 08:18 PM]: 1,693 total gene models from EVM
+[Mar 23 08:18 PM]: Generating protein fasta files from 1,693 EVM models
+[Mar 23 08:18 PM]: now filtering out bad gene models (< 50 aa in length, transposable elements, etc).
+[Mar 23 08:19 PM]: Found 141 gene models to remove: 0 too short; 0 span gaps; 141 transposable elements
+[Mar 23 08:19 PM]: 1,552 gene models remaining
+[Mar 23 08:19 PM]: Predicting tRNAs
+[Mar 23 08:19 PM]: 112 tRNAscan models are valid (non-overlapping)
+[Mar 23 08:19 PM]: Generating GenBank tbl annotation file
+[Mar 23 08:19 PM]: Collecting final annotation files for 1,664 total gene models
+[Mar 23 08:19 PM]: Converting to final Genbank format
+[Mar 23 08:19 PM]: Funannotate predict is finished, output files are in the annotate/predict_results folder
+[Mar 23 08:19 PM]: Your next step might be functional annotation, suggested commands:
+-------------------------------------------------------
+Run InterProScan (manual install): 
+funannotate iprscan -i annotate -c 4
+
+Run antiSMASH (optional): 
+funannotate remote -i annotate -m antismash -e youremail@server.edu
+
+Annotate Genome: 
+funannotate annotate -i annotate --cpus 4 --sbt yourSBTfile.txt
+-------------------------------------------------------
+                
+[Mar 23 08:19 PM]: Training parameters file saved: annotate/predict_results/saccharomyces.parameters.json
+[Mar 23 08:19 PM]: Add species parameters to database:
+
+  funannotate species -s saccharomyces -a annotate/predict_results/saccharomyces.parameters.json
+
+#########################################################
+SUCCESS: `funannotate predict` test complete.
+#########################################################
+
+
+
+#以下は、実際に動かす方法(結果は省略)
+
+# For haploid fungal genome
+$ funannotate-docker clean -i input.fa --minlen 1000 -o input.cleaned.fa
+
+# sort
+$ funannotate-docker sort -i input.cleaned.fa -b scaffold -o input.cleaned.sorted.fa
+
+# softmask
+$ funannotate-docker mask -i input.cleaned.sorted.fa --cpus 4 -o MyAssembly.fa
+
+# training (if you have RNA-seq data)
+# raw data (not filtered) is needed¥
+$ funannotate-docker train -i MyAssembly.fa -o fun --left RNA-seq_1.fq.gz --right RNA-seq_2.fq.gz --stranded RF --jaccard_clip --species "species_name" --strain strain_name --memory 25G --cpus 4
+
+# predict
+$ funannotate-docker predict -i MyAssembly.fa -o fun -s "species_name" --strain strain_name --cpus 4
+
+# update
+$ funannotate-docker update -i fun --cpus 4
+
+# interproscan (dockerのものを使用したが、動かなかった。antiSMASHとphobiusについても、remoteで動かなかった)
+$ funannotate-docker iprscan -i fun -m docker --cpus 4
+$ funannotate-docker remote -i fun -m all -e your_e-mail_address
+
+# annotation
+$ funannotate-docker annotate -i fun --cpus 4
+
+
+
