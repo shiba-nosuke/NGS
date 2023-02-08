@@ -106,7 +106,7 @@ $ for fpath in `ls *_markup.bam`
 > do
 > fname=${fpath%_markup.bam}
 > gatk BaseRecalibrator -R ${REF} -I ${fname}_markup.bam --known-sites ${PROJECT_PATH}/bqsr/merged_snps_filtered.vcf --known-sites ${PROJECT_PATH}/bqsr/merged_indels_filtered.vcf -O ${fname}_recal_data.table
-> gatk ApplyBQSR -R ${REF} -I ${fname}_markdup.bam -bqsr ${fname}_recal_data.table -O ${fname}_bqsr.bam
+> gatk ApplyBQSR -R ${REF} -I ${fname}_markup.bam -bqsr ${fname}_recal_data.table -O ${fname}_bqsr.bam
 > done
 
 
